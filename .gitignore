@@ -1,0 +1,9 @@
+# Large dataset archive - not tracked in git
+icdar17_local_features.zip
+
+# Unrelated third-party installer
+Psiphon Conduit Installer.exe
+
+# Python cache
+__pycache__/
+*.pyc
