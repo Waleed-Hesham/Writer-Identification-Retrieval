@@ -1,0 +1,104 @@
+
+python skeleton.py --labels_train icdar17_labels_train.txt --labels_test icdar17_labels_test.txt --in_train icdar17_local_features/train --in_test icdar17_local_features/test --suffix "_SIFT_patch_pr.pkl.gz"
+#train: 1182
+> compute VLAD for test
+#test: 3600
+> evaluate
+Top-1 accuracy: 0.8236111111111111 - mAP: 0.6313920681051916
+> compute VLAD for train (for E-SVM)
+> esvm computation
+Top-1 accuracy: 0.8883333333333333 - mAP: 0.7532827670768282
+
+
+python skeleton.py --labels_train icdar17_labels_train.txt --labels_test icdar17_labels_test.txt --in_train train --in_test test --suffix "_SIFT_patch_pr.pkl.gz" --powernorm
+compute VLAD for test
+#test: 3600
+100%|████████████████████████████████████████████████████████████████████████████████| 3600/3600 [02:12<00:00, 27.19it/s]
+> evaluate
+Top-1 accuracy: 0.8236111111111111 - mAP: 0.6313920681051916
+> compute VLAD for train (for E-SVM)
+100%|████████████████████████████████████████████████████████████████████████████████| 1182/1182 [00:42<00:00, 27.85it/s]
+> esvm computation
+100%|████████████████████████████████████████████████████████████████████████████████| 3600/3600 [05:36<00:00, 10.70it/s]
+Top-1 accuracy: 0.8883333333333333 - mAP: 0.7532837461634836
+python skeleton.py --labels_train icdar17_labels_train.txt --labels_test icdar17_labels_test.txt --in_train train --in_test test --suffix "_SIFT_patch_pr.pkl.gz" --powernorm --gmp --gamma 1
+> compute VLAD for test
+#test: 3600
+100%|████████████████████████████████████████████████████████████████████████████████| 3600/3600 [05:58<00:00, 10.04it/s]
+> evaluate
+Top-1 accuracy: 0.8238888888888889 - mAP: 0.631422158876171
+> compute VLAD for train (for E-SVM)
+100%|████████████████████████████████████████████████████████████████████████████████| 1182/1182 [01:53<00:00, 10.42it/s]
+> esvm computation
+100%|████████████████████████████████████████████████████████████████████████████████| 3600/3600 [05:38<00:00, 10.65it/s]
+Top-1 accuracy: 0.8886111111111111 - mAP: 0.7535781159385189
+
+python skeleton.py --labels_train icdar17_labels_train.txt --labels_test icdar17_labels_test.txt --in_train train --in_test test --suffix "_SIFT_patch_pr.pkl.gz" --powernorm --gmp --gamma 10
+> compute VLAD for test
+#test: 3600
+100%|████████████████████████████████████████████████████████████████████████████████| 3600/3600 [05:07<00:00, 11.69it/s]
+> evaluate
+Top-1 accuracy: 0.8236111111111111 - mAP: 0.631391427149995
+> compute VLAD for train (for E-SVM)
+100%|████████████████████████████████████████████████████████████████████████████████| 1182/1182 [01:38<00:00, 11.95it/s]
+> esvm computation
+100%|████████████████████████████████████████████████████████████████████████████████| 3600/3600 [05:36<00:00, 10.71it/s]
+Top-1 accuracy: 0.8883333333333333 - mAP: 0.7533058683609889
+
+
+python skeleton.py --labels_train icdar17_labels_train.txt --labels_test icdar17_labels_test.txt --in_train train --in_test test --suffix "_SIFT_patch_pr.pkl.gz" --powernorm --gmp --gamma 0.1
+> compute VLAD for test
+#test: 3600
+100%|████████████████████████████████████████████████████████████████████████████████| 3600/3600 [05:19<00:00, 11.26it/s]
+> evaluate
+Top-1 accuracy: 0.825 - mAP: 0.6311021048687003
+> compute VLAD for train (for E-SVM)
+100%|████████████████████████████████████████████████████████████████████████████████| 1182/1182 [01:46<00:00, 11.13it/s]
+> esvm computation
+100%|████████████████████████████████████████████████████████████████████████████████| 3600/3600 [05:36<00:00, 10.69it/s]
+Top-1 accuracy: 0.89 - mAP: 0.7560793425989492
+> evaluate
+
+python skeleton.py --labels_train icdar17_labels_train.txt --labels_test icdar17_labels_test.txt --in_train 1324999/icdar17-historicalwi-training-binarized/icdar2017-training-binary --in_test 1324999/ScriptNet-HistoricalWI-2017-binarized/ScriptNet-HistoricalWI-2017-binarized --suffix ".jpg" --use_images --powernorm
+powernorm --overwrite
+#train: 1182
+100%|██████████████████████████████████████████████████████████████████████████████████| 100/100 [01:19<00:00,  1.26it/s]
+> loaded 499354 descriptors:
+> compute dictionary
+> compute VLAD for test
+#test: 3600
+ 29%|███████████████████████                                                         | 1039/3600 [13:59<25:28,  1.68it/s]
+100%|████████████████████████████████████████████████████████████████████████████████| 3600/3600 [50:25<00:00,  1.19it/s]
+> evaluate
+Top-1 accuracy: 0.8327777777777777 - mAP: 0.6453014510429825
+> compute VLAD for train (for E-SVM)
+ 83%|███████████████████████████████████████████████████████████████████▎             | 982/1182 [13:03<02:37,  1.27it/s]
+100%|████████████████████████████████████████████████████████████████████████████████| 1182/1182 [15:06<00:00,  1.30it/s]
+> esvm computation
+ 25%|████████████████████                                                             | 893/3600 [02:56<08:38,  5.22it/s]100%|████████████████████████████████████████████████████████████████████████████████| 3600/3600 [11:46<00:00,  5.10it/s]
+Top-1 accuracy: 0.8958333333333334 - mAP: 0.7662797837120005
+> evaluate
+
+
+python skeleton.py --labels_train icdar17_labels_train.txt --labels_test icdar17_labels_test.txt --in_train 1324999/icdar17-historicalwi-training-binarized/icdar2017-training-binary --in_test 1324999/ScriptNet-HistoricalWI-2017-binarized/ScriptNet-HistoricalWI-2017-binarized --suffix ".jpg" --use_images --powernorm --gmp --gamma 1
+> evaluate
+Top-1 accuracy: 0.8408333333333333 - mAP: 0.6516783240938501
+> compute VLAD for train (for E-SVM)
+100%|████████████████████████████████████████████████████████████████| 1182/1182 [16:54<00:00,  1.17it/s]
+> esvm computation
+100%|████████████████████████████████████████████████████████████████| 3600/3600 [12:31<00:00,  4.79it/s]Top-1 accuracy: 0.9041666666666667 - mAP: 0.7803009146927801
+> evaluate
+
+
+python skeleton.py --labels_train icdar17_labels_train.txt --labels_test icdar17_labels_test.txt --in_train train  --in_test test  --suffix "_SIFT_patch_pr.pkl.gz"  --powernorm --multivlad
+> evaluate multi-VLAD + PCA
+Top-1 accuracy: 0.8808333333333334 - mAP: 0.7430721955872286
+> evaluate multi-VLAD + PCA + E-SVM
+100%|████████████████████████████████████████████████████████████████| 3600/3600 [16:36<00:00,  3.61it/s]
+Top-1 accuracy: 0.8866666666666667 - mAP: 0.7536492222244986
+python skeleton.py --labels_train icdar17_labels_train.txt --labels_test icdar17_labels_test.txt --in_train 1324999/icdar17-historicalwi-training-binarized/icdar2017-training-binary --in_test 1324999/ScriptNet-HistoricalWI-2017-binarized/ScriptNet-HistoricalWI-2017-binarized --suffix ".png" --use_images --powernorm --multivlad
+> evaluate multi-VLAD + PCA
+Top-1 accuracy: 0.8908333333333334 - mAP: 0.7566887068863647
+> evaluate multi-VLAD + PCA + E-SVM
+100%|████████████████████████████████████████████████████████████████| 3600/3600 [15:50<00:00,  3.79it/s]
+Top-1 accuracy: 0.8969444444444444 - mAP: 0.7672867847055964
