@@ -17,9 +17,7 @@ for nearest-neighbor retrieval (Top-1 accuracy / mAP).
 | `result.md` | Short summary of the two headline results. |
 | `exercise.pdf`, `exercise-01.pdf`, `projcv.pdf`, `individual.pdf` | Assignment/course PDFs. |
 
-Not tracked in git (see `.gitignore`): `icdar17_local_features.zip` (9.3GB
-precomputed local-feature archive) and an unrelated `Psiphon Conduit
-Installer.exe` that happened to sit in this folder.
+Not tracked in git (see `.gitignore`): `icdar17_local_features.zip` 
 
 ## Pipeline
 
