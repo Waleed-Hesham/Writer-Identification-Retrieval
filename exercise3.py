@@ -14,6 +14,7 @@ from sklearn.preprocessing import normalize
 import numpy as np
 import cv2
 from parmap import parmap
+from reranking import rerank_distances
 import sys
 from sklearn.decomposition import PCA
 
@@ -52,6 +53,23 @@ def parseArgs(parser):
                         help='max number of training samples used to fit PCA (speed/memory)')
     parser.add_argument('--k', default=100, type=int,
                         help='number of clusters (K) (default 100; you may reduce to e.g. 32 for speed)')
+
+    parser.add_argument('--rerank', default='qe+kreciprocal',
+                        choices=['none', 'qe', 'kreciprocal', 'qe+kreciprocal'],
+                        help='re-ranking method applied after the encodings are computed')
+    parser.add_argument('--qe_k', default=2, type=int,
+                        help='number of neighbors used for alpha query expansion')
+    parser.add_argument('--qe_alpha', default=3.0, type=float,
+                        help='weighting exponent of alpha query expansion')
+    parser.add_argument('--qe_iter', default=1, type=int,
+                        help='number of query expansion iterations')
+    # defaults tuned for ICDAR17: only 4 relevant pages per query, so k1 must stay small
+    parser.add_argument('--rerank_k1', default=4, type=int,
+                        help='k1 neighborhood size of the k-reciprocal re-ranking')
+    parser.add_argument('--rerank_k2', default=2, type=int,
+                        help='k2 local expansion size of the k-reciprocal re-ranking')
+    parser.add_argument('--rerank_lambda', default=0.3, type=float,
+                        help='weight of the original distance vs. the Jaccard distance')
     return parser
 
 def getFiles(folder, pattern, labelfile):
@@ -165,6 +183,14 @@ def assignments(descriptors, clusters):
     # BFMatcher expects float32
     desc_f32 = descriptors.astype(np.float32)
     clus_f32 = clusters.astype(np.float32)
+
+    if desc_f32.ndim != 2 or clus_f32.ndim != 2:
+        raise ValueError('Descriptors and clusters must be two-dimensional matrices.')
+    if desc_f32.shape[1] != clus_f32.shape[1]:
+        raise ValueError(
+            'Descriptor dimension ({}) does not match cluster dimension ({}). '
+            'Rebuild the dictionary for the selected descriptor pipeline.'.format(
+                desc_f32.shape[1], clus_f32.shape[1]))
 
     # knnMatch with k=1 to get nearest cluster for each descriptor
     matches = bf.knnMatch(desc_f32, clus_f32, k=1)
@@ -323,14 +349,16 @@ def distances(encs):
     np.fill_diagonal(dists, np.finfo(dists.dtype).max)
     return dists
 
-def evaluate(encs, labels):
+def evaluate(encs, labels, dist_matrix=None):
     """
     evaluate encodings assuming using associated labels
     parameters:
         encs: TxK*D encoding matrix
         labels: array/list of T labels
+        dist_matrix: optional pre-computed (e.g. re-ranked) TxT distance matrix
     """
-    dist_matrix = distances(encs)
+    if dist_matrix is None:
+        dist_matrix = distances(encs)
     # sort each row of the distance matrix
     indices = dist_matrix.argsort()
 
@@ -352,6 +380,29 @@ def evaluate(encs, labels):
     mAP = np.mean(mAP)
 
     print('Top-1 accuracy: {} - mAP: {}'.format(float(correct) / n_encs, mAP))
+    return float(correct) / n_encs, mAP
+
+
+def rerank_and_evaluate(encs, labels, args, tag=''):
+    """
+    apply the re-ranking stage on top of the given encodings and evaluate
+    """
+    if args.rerank == 'none':
+        return None
+
+    print('> re-rank{}'.format(tag))
+    dist_matrix = rerank_distances(
+        encs,
+        method=args.rerank,
+        qe_k=args.qe_k,
+        qe_alpha=args.qe_alpha,
+        qe_iter=args.qe_iter,
+        k1=args.rerank_k1,
+        k2=args.rerank_k2,
+        lambda_value=args.rerank_lambda,
+    )
+    print('> evaluate (re-ranked{})'.format(tag))
+    return evaluate(encs, labels, dist_matrix=dist_matrix)
 
 
 # SIFT + Hellinger normalization (bonus e)
@@ -598,10 +649,12 @@ def run_multivlad_pca(args, files_train, labels_train, files_test, labels_test):
 
     print('> evaluate multi-VLAD + PCA')
     evaluate(enc_test_pca, labels_test)
+    rerank_and_evaluate(enc_test_pca, labels_test, args, tag=' multi-VLAD + PCA')
 
     print('> evaluate multi-VLAD + PCA + E-SVM')
     enc_test_esvm = esvm(enc_test_pca, enc_train_pca, C=args.C)
     evaluate(enc_test_esvm, labels_test)
+    rerank_and_evaluate(enc_test_esvm, labels_test, args, tag=' multi-VLAD + PCA + E-SVM')
 
 
 if __name__ == '__main__':
@@ -627,7 +680,8 @@ if __name__ == '__main__':
     files_train, labels_train = getFiles(args.in_train, args.suffix,
                                          args.labels_train)
     print('#train: {}'.format(len(files_train)))
-    if not os.path.exists('mus.pkl.gz'):
+    mus_fname = 'mus_images.pkl.gz' if args.use_images else 'mus.pkl.gz'
+    if not os.path.exists(mus_fname):
         
         descriptors = loadRandomDescriptors(files_train, max_descriptors=500000)
         print('> loaded {} descriptors:'.format(len(descriptors)))
@@ -636,11 +690,11 @@ if __name__ == '__main__':
         print('> compute dictionary')
         
         mus = dictionary(descriptors, n_clusters=100)
-        with gzip.open('mus.pkl.gz', 'wb') as fOut:
+        with gzip.open(mus_fname, 'wb') as fOut:
             cPickle.dump(mus, fOut, -1)
     else:
-        with gzip.open('mus.pkl.gz', 'rb') as f:
-            mus = cPickle.load(f)
+        with gzip.open(mus_fname, 'rb') as f:
+            mus = cPickle.load(f, encoding='latin1')
 
   
     # b) VLAD encoding
@@ -649,7 +703,9 @@ if __name__ == '__main__':
                                        args.labels_test)
     print('#test: {}'.format(len(files_test)))
     gamma = args.gamma
-    fname = 'enc_test_gmp{}.pkl.gz'.format(gamma) if args.gmp else 'enc_test.pkl.gz'
+    cache_suffix = '_images' if args.use_images else ''
+    fname = ('enc_test{}_gmp{}.pkl.gz'.format(cache_suffix, gamma)
+             if args.gmp else 'enc_test{}.pkl.gz'.format(cache_suffix))
     if not os.path.exists(fname) or args.overwrite:
         enc_test = vlad(files_test, mus, powernorm=args.powernorm,
                 gmp=args.gmp, gamma=args.gamma)
@@ -663,9 +719,13 @@ if __name__ == '__main__':
     print('> evaluate')
     evaluate(enc_test, labels_test)
 
+    # c) re-ranking on the plain VLAD encodings
+    rerank_and_evaluate(enc_test, labels_test, args)
+
     # d) compute exemplar svms
     print('> compute VLAD for train (for E-SVM)')
-    fname = 'enc_train_gmp{}.pkl.gz'.format(gamma) if args.gmp else 'enc_train.pkl.gz'
+    fname = ('enc_train{}_gmp{}.pkl.gz'.format(cache_suffix, gamma)
+             if args.gmp else 'enc_train{}.pkl.gz'.format(cache_suffix))
     if not os.path.exists(fname) or args.overwrite:
         enc_train = vlad(files_train, mus, powernorm=args.powernorm,
                      gmp=args.gmp, gamma=args.gamma)
@@ -679,8 +739,8 @@ if __name__ == '__main__':
     enc_test = esvm(enc_test, enc_train, C=args.C)
 
     # eval
+    print('> evaluate (E-SVM)')
     evaluate(enc_test, labels_test)
-    print('> evaluate')
 
-
-
+    # e) re-ranking on top of the E-SVM embedding
+    rerank_and_evaluate(enc_test, labels_test, args, tag=' + E-SVM')
